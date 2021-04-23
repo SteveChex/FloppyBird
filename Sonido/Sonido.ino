@@ -32,14 +32,22 @@
 
 uint32_t freq = 0;
 bool state = false, sta2 = false;
-uint8_t soundCount = 0, durationCount = 0, beat = 0;
+uint8_t soundCount = 0, durationCount = 0, beat = 0, durationBase = 0, durationBetweenNotes = 0;
 
-uint32_t notes[12] = {121396, 161943, 152963, 136286, 152963, 161943,
-                      181818, 181818, 152963, 121396, 136286, 152963
+uint32_t notes[23] = {1,
+                      121396, 161943, 152963, 136286, 152963, 161943,
+                      181818, 181818, 152963, 121396, 136286, 152963,
+                      161943, 161943, 152963, 136286, 121396,
+                      152963, 181818, 181818, 0,
+                      1
                      };
-uint8_t duration[12] = {2, 1, 1, 2, 1, 1,
-                        2, 1, 1, 2, 1, 1
-                       };
+uint8_t duration[23] = {64,
+                        2, 4, 4, 2, 4, 4,
+                        2, 4, 4, 2, 4, 4,
+                        2, 4, 4, 2, 2,
+                        2, 2, 2, 2,
+                        64
+                        };
 
 unsigned long lastTime = 0;
 
@@ -68,12 +76,13 @@ void setup() {
 //*****************************************************************************************************
 
 void loop() {
+  Serial.println(durationBetweenNotes);
   if (millis() > lastTime + interval) {
 
     //digitalWrite(LED2, state);
     lastTime = millis();
   }
-  Serial.println(freq);
+  //Serial.println(freq);
   //digitalWrite(LED, HIGH);
   delay(100);
   //digitalWrite(LED, LOW);
@@ -94,8 +103,6 @@ void Timer1AHandler(void) {
   } else {
     state = true;
   }
-  freq = notes[soundCount];
-  ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // El último argumento es el CustomValue
   ROM_TimerIntClear(TIMER1_BASE, TIMER_A);
 
 }
@@ -103,26 +110,30 @@ void Timer1AHandler(void) {
 void Timer2AHandler(void) {
   //Required to launch next interrupt
   ROM_TimerIntClear(TIMER2_BASE, TIMER_A);
-  if (sta2) {
-    sta2 = false;
-  } else {
-    sta2 = true;
-  }
-  digitalWrite(LED2, sta2);
+  
   beat++;
-  if (beat >= 128) {
+  durationBase = 128 / duration[soundCount];
+  durationBetweenNotes = durationBase * 2 / 10;
+  
+  if (beat >= (128 / duration[soundCount]) - durationBetweenNotes) {
+    freq = 0;
+    ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // El último argumento es el CustomValue
+  }
+
+  if (beat >= durationBase) {
     beat = 0;
     soundCount++;
-    if (soundCount > 11) {
-      soundCount = 0;
+    if (soundCount > 21) {
+      soundCount = 1;
     }
+    freq = notes[soundCount];
+    ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // El último argumento es el CustomValue
   }
 }
 
 //*****************************************************************************************************
 //                                          FUNCIONES
 //*****************************************************************************************************
-
 
 // Función que configura el timer (1A en este ejemplo)
 void configureTimer1A() {
@@ -140,7 +151,7 @@ void configureTimer1A() {
   // Ejemplos:
   // Si se quiere una frecuencia de 1 Hz, el CustomValue debe ser 80 000 000: 80MHz/80M = 1 Hz
   // Si se quiere una frecuencia de 1 kHz, el CustomValue debe ser 80000: 80MHz/80k = 1 kHz
-  ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, 80000); // El último argumento es el CustomValue
+  ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, 8); // El último argumento es el CustomValue
   ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, 640000); // El último argumento es el CustomValue
 
   // Al parecer, no hay función ROM_TimerIntRegister definida. Usar la de memoria FLASH
