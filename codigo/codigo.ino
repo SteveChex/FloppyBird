@@ -29,6 +29,15 @@
 #define LCD_RS PD_2
 #define LCD_WR PD_3
 #define LCD_RD PE_1
+
+#define PB1 PUSH1
+#define PB2 PUSH2
+
+int PB1State = 1;
+int PB2State = 1;
+int x_1 = 20;
+int y_1 = 20;
+
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};  
 //***************************************************************************************************************************************
 // Functions Prototypes
@@ -47,8 +56,11 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
 
+void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]);
+void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]);
 
-extern uint8_t fondo[];
+
+extern uint8_t tile[];
 
 //***************************************************************************************************************************************
 // Inicialización
@@ -61,6 +73,9 @@ void setup() {
   LCD_Init();
   LCD_Clear(0x00);
   
+  pinMode(PB1, INPUT_PULLUP);
+  pinMode(PB2, INPUT_PULLUP);
+  
   FillRect(0, 0, 319, 206, 0x01EB);
   String text1 = "PLANE";
   
@@ -72,33 +87,67 @@ void setup() {
   //LCD_Bitmap(0, 0, 320, 240, fondo);
   FillRect(0, 0, 320, 240, 0x7E3D);
   
-  LCD_Bitmap(50, 30, 35, 25, planej2);
-  
   for(int x = 0; x <319; x++){
     LCD_Bitmap(x, 196, 16, 44, tile);
     x += 15;
  }
-  
+ LCD_Bitmap(x_1, y_1, 35, 25, planej1);
 }
 //***************************************************************************************************************************************
 // Loop Infinito
 //***************************************************************************************************************************************
 void loop() {
-  for(int x = 0; x < 320-100; x++){
-    int animation = (x/2)%2;
-    LCD_Bitmap(x, 70, 35, 25, planej1);
-    LCD_Sprite(x+35, 70, 3, 21, helice, 5, animation, 0, 0);
-    V_line(x-1, 70, 25, 0x7E3D);
-    delay(5);
-    }
-  for(int x = 320-100; x > 0; x--){
-    int animation = (x/2)%2;
-    LCD_Bitmap(x, 70, 35, 25, planej1);
-    LCD_Sprite(x+35, 70, 3, 21, helice, 5, animation, 0, 0);
-    V_line(x+38, 70, 25, 0x7E3D);
-    delay(5);
-    }
+  PB1State = digitalRead(PB1);
+  PB2State = digitalRead(PB2);
+  x_move(PB1State, PB2State, 20, 200, 35, 25, planej1);
 }
+
+//***************************************************************************************************************************************
+// Funciones de movimiento
+//***************************************************************************************************************************************
+//****************************************
+// Movimiento horizontal de los personajes
+//****************************************
+void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]){
+  if(rightButtonState == 0){
+    if(x_1 < xlim2){
+      x_1++;
+      LCD_Bitmap(x_1, y_1, width, heigth, bitmap);
+      V_line(x_1-1, y_1, heigth, 0x7E3D);
+      delay(5);
+    }
+  }
+  if(leftButtonState == 0){
+    if(x_1 >= xlim1){
+      x_1--;
+      LCD_Bitmap(x_1, y_1, width, heigth, planej1);
+      V_line(x_1+35, y_1, width, 0x7E3D);
+      delay(5);
+    }
+  }
+}
+//****************************************
+// Movimiento vertical de los personajes
+//****************************************
+void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]){
+  if(upButtonState == 0){
+    if(y_1 < ylim2){
+      y_1++;
+      LCD_Bitmap(x_1, y_1, width, heigth, bitmap);
+      H_line(x_1, y_1-1, 35, 0x7E3D);
+      delay(5);
+    }
+  }
+  if(downButtonState == 0){
+    if(y_1 >= ylim1){
+      y_1--;
+      LCD_Bitmap(x_1, y_1, width, heigth, planej1);
+      H_line(x_1, y_1+25, width, 0x7E3D);
+      delay(5);
+    }
+  }
+}
+
 //***************************************************************************************************************************************
 // Función para inicializar LCD
 //***************************************************************************************************************************************
@@ -444,8 +493,6 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int 
       k = k + 2;
      } 
   }
-    
-    
-    }
+  }
   digitalWrite(LCD_CS, HIGH);
 }
