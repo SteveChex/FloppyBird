@@ -68,8 +68,10 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int
 
 void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
-void jump(int buttonState, int ylim1, int width, int height, unsigned char bitmap[], int posx, int posy);
-void fall(int ylim2, int width, int height, unsigned char bitmap[]);
+void jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
+void jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
+void fall_1(int ylim2, int width, int height, unsigned char bitmap[]);
+void fall_2(int ylim2, int width, int height, unsigned char bitmap[]);
 
 
 extern uint8_t tile[];
@@ -104,17 +106,9 @@ void setup() {
   for (int x = 0; x < 319; x++) {
     LCD_Bitmap(x, 210, 80, 30, tile1);
     x += 79;
-<<<<<<< HEAD
  }
- //LCD_Bitmap(x_1, y_1, 35, 25, planej1);
- LCD_Bitmap(130, 129, 20, 81, tree);
- LCD_Bitmap(120, 0, 20, 78, liana);
-=======
-  }
-  LCD_Bitmap(x_1, y_1, 35, 25, planej1);
-  LCD_Bitmap(70, 129, 20, 81, tree); // Imprimir Arbol
+  LCD_Bitmap(130, 129, 20, 81, tree); // Imprimir Arbol
   LCD_Bitmap(120, 0, 20, 78, liana); // Imprimir liana
->>>>>>> 1b457648e05deb461605120e7c1db1b0c931caf9
 }
 //***************************************************************************************************************************************
 // Loop Infinito
@@ -126,19 +120,11 @@ void loop() {
   PB3State = digitalRead(PB3);
   PB4State = digitalRead(PB4);
   //x_move(PB3State, PB4State, 10, 160, 35, 25, planej1);
-<<<<<<< HEAD
-  
   
   fall_2(180, 35, 28, planej2);
   jump_2(PB1State, 10, 35, 28, planej2);
   fall_1(180, 35, 28, planej1);
   jump_1(PB2State, 10, 35, 28, planej1);
-=======
-
-  delay(2);
-  fall(180, 35, 28);
-  jump(PB1State, 10, 35, 28);
->>>>>>> 1b457648e05deb461605120e7c1db1b0c931caf9
 }
 
 //***************************************************************************************************************************************
@@ -147,7 +133,6 @@ void loop() {
 //****************************************
 // Caída
 //****************************************
-<<<<<<< HEAD
 
 // Jugador 1
 void fall_1(int ylim2, int width, int height, unsigned char bitmap[]){
@@ -171,22 +156,11 @@ void fall_2(int ylim2, int width, int height, unsigned char bitmap[]){
   LCD_Sprite(posx2+width, posy2+3, 3, 21, helice,5, anim, 0, 0);
   H_line(posx2, posy2-1, width, 0x7E3D);
   H_line(posx2, posy2-1-1, width, 0x7E3D);
-=======
-void fall(int ylim2, int width, int height) {
-  int anim = (posy / 35) % 2;
-  if (posy < ylim2) {
-    posy = posy + 1;
-  }
-  LCD_Bitmap(posx, posy, width, height, planej2);
-  LCD_Sprite(posx + width, posy + 3, 3, 21, helice, 5, anim, 0, 0);
-  H_line(posx, posy - 1, width, 0x7E3D);
->>>>>>> 1b457648e05deb461605120e7c1db1b0c931caf9
 };
 
 //****************************************
 // Salto
 //****************************************
-<<<<<<< HEAD
 // Jugador 1
 void jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]){
   int anim = (posy1/35)%2;
@@ -211,20 +185,10 @@ void jump_2(int buttonState, int ylim1, int width, int height, unsigned char bit
     LCD_Sprite(posx2+width, posy2+3, 3, 21, helice,5, anim, 0, 0);
     for(int i = 0; i < 5; i++){
       H_line(posx2, posy2+28+i, width, 0x7E3D);
-=======
-void jump(int buttonState, int ylim1, int width, int height) {
-  int anim = (posy / 35) % 2;
-  if (buttonState == 0 & posy - 5 > ylim1) {
-    posy = posy - 5;
-    H_line(posx, posy + height, width, 0x7E3D);
-    LCD_Bitmap(posx, posy, width, height, planej2);
-    LCD_Sprite(posx + width, posy + 3, 3, 21, helice, 5, anim, 0, 0);
-    for (int i = 0; i < 5; i++) {
-      H_line(posx, posy + 28 + i, width, 0x7E3D);
->>>>>>> 1b457648e05deb461605120e7c1db1b0c931caf9
     }
   }
 };
+
 //****************************************
 // Movimiento horizontal de los personajes
 //****************************************
@@ -583,36 +547,36 @@ void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int
 //***************************************************************************************************************************************
 // Función para dibujar una imagen sprite - los parámetros columns = número de imagenes en el sprite, index = cual desplegar, flip = darle vuelta
 //***************************************************************************************************************************************
-void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int columns, int index, char flip, char offset) {
+void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset){
   LCD_CMD(0x02c); // write_memory_start
   digitalWrite(LCD_RS, HIGH);
-  digitalWrite(LCD_CS, LOW);
+  digitalWrite(LCD_CS, LOW); 
 
   unsigned int x2, y2;
-  x2 =   x + width;
-  y2 =    y + height;
-  SetWindows(x, y, x2 - 1, y2 - 1);
+  x2 =   x+width;
+  y2=    y+height;
+  SetWindows(x, y, x2-1, y2-1);
   int k = 0;
-  int ancho = ((width * columns));
-  if (flip) {
-    for (int j = 0; j < height; j++) {
-      k = (j * (ancho) + index * width - 1 - offset) * 2;
-      k = k + width * 2;
-      for (int i = 0; i < width; i++) {
-        LCD_DATA(bitmap[k]);
-        LCD_DATA(bitmap[k + 1]);
-        k = k - 2;
-      }
-    }
-  } else {
-    for (int j = 0; j < height; j++) {
-      k = (j * (ancho) + index * width + 1 + offset) * 2;
-      for (int i = 0; i < width; i++) {
-        LCD_DATA(bitmap[k]);
-        LCD_DATA(bitmap[k + 1]);
-        k = k + 2;
-      }
-    }
+  int ancho = ((width*columns));
+  if(flip){
+  for (int j = 0; j < height; j++){
+      k = (j*(ancho) + index*width -1 - offset)*2;
+      k = k+width*2;
+     for (int i = 0; i < width; i++){
+      LCD_DATA(bitmap[k]);
+      LCD_DATA(bitmap[k+1]);
+      k = k - 2;
+     } 
   }
+  }else{
+     for (int j = 0; j < height; j++){
+      k = (j*(ancho) + index*width + 1 + offset)*2;
+     for (int i = 0; i < width; i++){
+      LCD_DATA(bitmap[k]);
+      LCD_DATA(bitmap[k+1]);
+      k = k + 2;
+     } 
+  }
+    }
   digitalWrite(LCD_CS, HIGH);
 }
