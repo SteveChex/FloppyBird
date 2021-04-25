@@ -42,8 +42,11 @@ int PB4State = 1;
 int x_1 = 20;
 int y_1 = 20;
 
-int posx = 20;
-int posy = 20;
+int posx1 = 20;
+int posy1 = 20;
+int posx2 = 60;
+int posy2 = 20;
+
 
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};  
 //***************************************************************************************************************************************
@@ -65,8 +68,8 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int 
 
 void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
-void jump(int buttonState, int ylim1, int width, int height);
-void fall(int ylim2, int width, int height);
+void jump(int buttonState, int ylim1, int width, int height, unsigned char bitmap[], int posx, int posy);
+void fall(int ylim2, int width, int height, unsigned char bitmap[]);
 
 
 extern uint8_t tile[];
@@ -102,8 +105,8 @@ void setup() {
     LCD_Bitmap(x, 210, 80, 30, tile1);
     x += 79;
  }
- LCD_Bitmap(x_1, y_1, 35, 25, planej1);
- LCD_Bitmap(70, 129, 20, 81, tree);
+ //LCD_Bitmap(x_1, y_1, 35, 25, planej1);
+ LCD_Bitmap(130, 129, 20, 81, tree);
  LCD_Bitmap(120, 0, 20, 78, liana);
 }
 //***************************************************************************************************************************************
@@ -118,9 +121,10 @@ void loop() {
   //x_move(PB3State, PB4State, 10, 160, 35, 25, planej1);
   
   
-  delay(2);
-  fall(180, 35, 28);
-  jump(PB1State, 10, 35, 28);
+  fall_2(180, 35, 28, planej2);
+  jump_2(PB1State, 10, 35, 28, planej2);
+  fall_1(180, 35, 28, planej1);
+  jump_1(PB2State, 10, 35, 28, planej1);
 }
 
 //***************************************************************************************************************************************
@@ -129,28 +133,58 @@ void loop() {
 //****************************************
 // Caída 
 //****************************************
-void fall(int ylim2, int width, int height){
-  int anim = (posy/35)%2;
-  if(posy < ylim2){
-    posy = posy + 1;
+
+// Jugador 1
+void fall_1(int ylim2, int width, int height, unsigned char bitmap[]){
+  int anim = (posy1/35)%2;
+  if(posy1 < ylim2){
+    posy1 = posy1 + 2;
   }
-  LCD_Bitmap(posx, posy, width, height, planej2);
-  LCD_Sprite(posx+width, posy+3, 3, 21, helice,5, anim, 0, 0);
-  H_line(posx, posy-1, width, 0x7E3D);
+  LCD_Bitmap(posx1, posy1, width, height, bitmap);
+  LCD_Sprite(posx1+width, posy1+3, 3, 21, helice,5, anim, 0, 0);
+  H_line(posx1, posy1-1, width, 0x7E3D);
+  H_line(posx1, posy1-1-1, width, 0x7E3D);
+};
+
+// Jugador 2
+void fall_2(int ylim2, int width, int height, unsigned char bitmap[]){
+  int anim = (posy2/35)%2;
+  if(posy2 < ylim2){
+    posy2 = posy2 + 2;
+  }
+  LCD_Bitmap(posx2, posy2, width, height, bitmap);
+  LCD_Sprite(posx2+width, posy2+3, 3, 21, helice,5, anim, 0, 0);
+  H_line(posx2, posy2-1, width, 0x7E3D);
+  H_line(posx2, posy2-1-1, width, 0x7E3D);
 };
 
 //****************************************
 // Salto
 //****************************************
-void jump(int buttonState, int ylim1, int width, int height){
-  int anim = (posy/35)%2;
-  if(buttonState == 0 & posy-5 > ylim1){
-    posy = posy - 5;
-    H_line(posx, posy+height, width, 0x7E3D);
-    LCD_Bitmap(posx, posy, width, height, planej2);
-    LCD_Sprite(posx+width, posy+3, 3, 21, helice,5, anim, 0, 0);
+// Jugador 1
+void jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]){
+  int anim = (posy1/35)%2;
+  if(buttonState == 0 & posy1-5 > ylim1){
+    posy1 = posy1 - 5;
+    H_line(posx1, posy1+height, width, 0x7E3D);
+    LCD_Bitmap(posx1, posy1, width, height, bitmap);
+    LCD_Sprite(posx1+width, posy1+3, 3, 21, helice,5, anim, 0, 0);
     for(int i = 0; i < 5; i++){
-      H_line(posx, posy+28+i, width, 0x7E3D);
+      H_line(posx1, posy1+28+i, width, 0x7E3D);
+    }
+  }
+};
+
+// Jugador 2
+void jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]){
+  int anim = (posy2/35)%2;
+  if(buttonState == 0 & posy2-5 > ylim1){
+    posy2 = posy2 - 5;
+    H_line(posx2, posy2+height, width, 0x7E3D);
+    LCD_Bitmap(posx2, posy2, width, height, bitmap);
+    LCD_Sprite(posx2+width, posy2+3, 3, 21, helice,5, anim, 0, 0);
+    for(int i = 0; i < 5; i++){
+      H_line(posx2, posy2+28+i, width, 0x7E3D);
     }
   }
 };
