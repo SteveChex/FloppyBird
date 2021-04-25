@@ -141,7 +141,6 @@ void loop() {
   // Linea x_move borrada
 
   x_move_obs(1, 20, 81, tree, 20, 78, liana, &x_coord_obs, &anclasY_obs[1], &anclasY_obs[0]);
-  V_line(100, 0, 240, 0x0000);
   if (PB1State == 0){
     anclas_aviones[1] = jump_2(PB1State, 10, 35, 28, planej2);
   } else {
@@ -152,9 +151,9 @@ void loop() {
   } else {
     anclas_aviones[0] = fall_1(180, 35, 28, planej1);
   }
-  
   // -------- Lineas de depuración ----------
   // Despliegan visualmente la coordenada x de los obstáculos y lo muestran en un cuadro en pantalla.
+  V_line(100, 0, 240, 0x0000);
   char str[3];
   sprintf(str,"%d", x_coord_obs);
   FillRect(0, 0, 100, 12, 0x01EB);
@@ -236,6 +235,7 @@ int jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitm
       H_line(posx1, posy1 + 28 + i, width, 0x7E3D);
     }
   }
+  V_line(posx1 + width+1, posy1 + 28, 3, 0x7E3D);
   return posy1;
 };
 
@@ -251,6 +251,7 @@ int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitm
       H_line(posx2, posy2 + 28 + i, width, 0x7E3D);
     }
   }
+  V_line(posx2 + width + 1, posy2 + 28, 3, 0x7E3D);
   return posy2;
 };
 
