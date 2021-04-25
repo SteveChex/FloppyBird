@@ -32,11 +32,18 @@
 
 #define PB1 PUSH1
 #define PB2 PUSH2
+#define PB3 PE_3
+#define PB4 PE_4
 
 int PB1State = 1;
 int PB2State = 1;
+int PB3State = 1;
+int PB4State = 1;
 int x_1 = 20;
 int y_1 = 20;
+
+int posx = 20;
+int posy = 20;
 
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};  
 //***************************************************************************************************************************************
@@ -56,8 +63,10 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
 
-void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]);
-void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]);
+void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
+void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
+void jump(int buttonState, int ylim1, int width, int height);
+void fall(int ylim2, int width, int height);
 
 
 extern uint8_t tile[];
@@ -75,6 +84,8 @@ void setup() {
   
   pinMode(PB1, INPUT_PULLUP);
   pinMode(PB2, INPUT_PULLUP);
+  pinMode(PB3, INPUT);
+  pinMode(PB4, INPUT);
   
   FillRect(0, 0, 319, 206, 0x01EB);
   String text1 = "PLANE";
@@ -88,10 +99,12 @@ void setup() {
   FillRect(0, 0, 320, 240, 0x7E3D);
   
   for(int x = 0; x <319; x++){
-    LCD_Bitmap(x, 196, 16, 44, tile);
-    x += 15;
+    LCD_Bitmap(x, 210, 80, 30, tile1);
+    x += 79;
  }
  LCD_Bitmap(x_1, y_1, 35, 25, planej1);
+ LCD_Bitmap(70, 129, 20, 81, tree);
+ LCD_Bitmap(120, 0, 20, 78, liana);
 }
 //***************************************************************************************************************************************
 // Loop Infinito
@@ -99,51 +112,83 @@ void setup() {
 void loop() {
   PB1State = digitalRead(PB1);
   PB2State = digitalRead(PB2);
-  x_move(PB1State, PB2State, 20, 200, 35, 25, planej1);
+  //y_move(PB1State, PB2State, 10, 160, 35, 25, planej1);
+  PB3State = digitalRead(PB3);
+  PB4State = digitalRead(PB4);
+  //x_move(PB3State, PB4State, 10, 160, 35, 25, planej1);
+  
+  
+  delay(2);
+  fall(180, 35, 28);
+  jump(PB1State, 10, 35, 28);
 }
 
 //***************************************************************************************************************************************
 // Funciones de movimiento
 //***************************************************************************************************************************************
 //****************************************
+// Caída 
+//****************************************
+void fall(int ylim2, int width, int height){
+  int anim = (posy/35)%2;
+  if(posy < ylim2){
+    posy = posy + 1;
+  }
+  LCD_Bitmap(posx, posy, width, height, planej2);
+  LCD_Sprite(posx+width, posy+3, 3, 21, helice,5, anim, 0, 0);
+  H_line(posx, posy-1, width, 0x7E3D);
+};
+
+//****************************************
+// Salto
+//****************************************
+void jump(int buttonState, int ylim1, int width, int height){
+  int anim = (posy/35)%2;
+  if(buttonState == 0 & posy-5 > ylim1){
+    posy = posy - 5;
+    H_line(posx, posy+height, width, 0x7E3D);
+    LCD_Bitmap(posx, posy, width, height, planej2);
+    LCD_Sprite(posx+width, posy+3, 3, 21, helice,5, anim, 0, 0);
+    for(int i = 0; i < 5; i++){
+      H_line(posx, posy+28+i, width, 0x7E3D);
+    }
+  }
+};
+//****************************************
 // Movimiento horizontal de los personajes
 //****************************************
-void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]){
+void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]){
   if(rightButtonState == 0){
     if(x_1 < xlim2){
       x_1++;
-      LCD_Bitmap(x_1, y_1, width, heigth, bitmap);
-      V_line(x_1-1, y_1, heigth, 0x7E3D);
-      delay(5);
+      LCD_Bitmap(x_1, y_1, width, height, bitmap);
+      V_line(x_1-1, y_1, height, 0x7E3D);
     }
   }
   if(leftButtonState == 0){
     if(x_1 >= xlim1){
       x_1--;
-      LCD_Bitmap(x_1, y_1, width, heigth, planej1);
+      LCD_Bitmap(x_1, y_1, width, height, bitmap);
       V_line(x_1+35, y_1, width, 0x7E3D);
-      delay(5);
     }
   }
 }
 //****************************************
 // Movimiento vertical de los personajes
 //****************************************
-void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int heigth, unsigned char bitmap[]){
+void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]){
   if(upButtonState == 0){
     if(y_1 < ylim2){
       y_1++;
-      LCD_Bitmap(x_1, y_1, width, heigth, bitmap);
-      H_line(x_1, y_1-1, 35, 0x7E3D);
-      delay(5);
+      LCD_Bitmap(x_1, y_1, width, height, bitmap);
+      H_line(x_1, y_1-1, width, 0x7E3D);
     }
   }
   if(downButtonState == 0){
     if(y_1 >= ylim1){
       y_1--;
-      LCD_Bitmap(x_1, y_1, width, heigth, planej1);
+      LCD_Bitmap(x_1, y_1, width, height, planej1);
       H_line(x_1, y_1+25, width, 0x7E3D);
-      delay(5);
     }
   }
 }
