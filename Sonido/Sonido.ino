@@ -25,39 +25,122 @@
 #define LED2 BLUE_LED
 #define Pot PD_0
 #define Buz PD_1
+#define SW_1 PF_0
+#define SW_2 PF_4
 
 #define MHZ80 80000000
 
 #define interval 100
 
 uint32_t freq = 0;
-bool state = false, sta2 = false;
-uint8_t soundCount = 0, durationCount = 0, beat = 0, durationBase = 0, durationBetweenNotes = 0,
+bool state = false, sta2 = false, stop = false;
+uint8_t soundCount = 1, durationCount = 0, beat = 0, durationBase = 0, durationBetweenNotes = 0,
         songLastIndex = 0;
 
-uint32_t notes[44] = {1,
-                      121396, 161943, 152963, 136286, 152963, 161943, // 6
-                      181818, 181818, 152963, 121396, 136286, 152963, // 6
-                      161943, 161943, 152963, 136286, 121396,         // 5
-                      152963, 181818, 181818, 0,                      // 4
-                      0, 136286, 114613 , 90909, 102040, 114613,      // 6
-                      121396, 0, 152963, 121396, 136286, 152963,      // 6
-                      161943, 161943, 152963, 136286, 121396,         // 5
-                      152963, 181818, 181818, 0,                      // 4
-                      1
-                     };
-uint8_t duration[44] = {64,               // suma de fracciones: 1/duration[n]
-                        2, 4, 4, 2, 4, 4, // 2 en todas las filas
-                        2, 4, 4, 2, 4, 4,
-                        2, 4, 4, 2, 2,
-                        2, 2, 2, 2,
-                        4, 2, 4, 2, 4, 4,
-                        2, 4, 4, 2, 4, 4,
-                        2, 4, 4, 2, 2,
-                        2, 2, 2, 2,
-                        64
-                       };
-
+       
+//------------------------------- KOROBEINIKI -------------------------------------
+/*uint32_t notes[107] = {1,
+                       121396, 161943, 152963, 136286, 152963, 161943, // 6
+                       181818, 181818, 152963, 121396, 136286, 152963, // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       0, 136286, 114613 , 90909, 102040, 114613,      // 6
+                       121396, 0, 152963, 121396, 136286, 152963,      // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       //----- REPETICION -----
+                       121396, 161943, 152963, 136286, 152963, 161943, // 6
+                       181818, 181818, 152963, 121396, 136286, 152963, // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       0, 136286, 114613 , 90909, 102040, 114613,      // 6
+                       121396, 0, 152963, 121396, 136286, 152963,      // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       //------- PUENTE -------
+                       121396, 152963, 136286, 161943,
+                       152963, 181818 , 192771, 161943,
+                       121396, 152963, 136286, 161943,
+                       152963, 121396 , 90909 , 90909, 96269, 96269, 0,
+                       1
+                      };
+uint8_t duration[107] = {64,               // suma de fracciones: 1/duration[n]
+                         2, 4, 4, 2, 4, 4, // 2 en todas las filas
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         4, 2, 4, 2, 4, 4,
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         //----- REPETICION -----
+                         2, 4, 4, 2, 4, 4, // 2 en todas las filas
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         4, 2, 4, 2, 4, 4,
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         //------- PUENTE -------
+                         1, 1, 1, 1,
+                         1, 1, 1, 1,
+                         1, 1, 1, 1,
+                         2, 2, 2, 2, 1, 2, 2,
+                         64
+                        };
+*/
+//------------------------------- KOROBEINIKI -------------------------------------
+uint32_t notes[107] = {1,
+                       121396, 161943, 152963, 136286, 152963, 161943, // 6
+                       181818, 181818, 152963, 121396, 136286, 152963, // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       0, 136286, 114613 , 90909, 102040, 114613,      // 6
+                       121396, 0, 152963, 121396, 136286, 152963,      // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       //----- REPETICION -----
+                       121396, 161943, 152963, 136286, 152963, 161943, // 6
+                       181818, 181818, 152963, 121396, 136286, 152963, // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       0, 136286, 114613 , 90909, 102040, 114613,      // 6
+                       121396, 0, 152963, 121396, 136286, 152963,      // 6
+                       161943, 161943, 152963, 136286, 121396,         // 5
+                       152963, 181818, 181818, 0,                      // 4
+                       //------- PUENTE -------
+                       121396, 152963, 136286, 161943,
+                       152963, 181818 , 192771, 161943,
+                       121396, 152963, 136286, 161943,
+                       152963, 121396 , 90909 , 90909, 96269, 96269, 0,
+                       1
+                      };
+uint8_t duration[107] = {64,               // suma de fracciones: 1/duration[n]
+                         2, 4, 4, 2, 4, 4, // 2 en todas las filas
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         4, 2, 4, 2, 4, 4,
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         //----- REPETICION -----
+                         2, 4, 4, 2, 4, 4, // 2 en todas las filas
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         4, 2, 4, 2, 4, 4,
+                         2, 4, 4, 2, 4, 4,
+                         2, 4, 4, 2, 2,
+                         2, 2, 2, 2,
+                         //------- PUENTE -------
+                         1, 1, 1, 1,
+                         1, 1, 1, 1,
+                         1, 1, 1, 1,
+                         2, 2, 2, 2, 1, 2, 2,
+                         64
+                        };
 unsigned long lastTime = 0;
 
 //*****************************************************************************************************
@@ -65,22 +148,23 @@ unsigned long lastTime = 0;
 //*****************************************************************************************************
 
 void setup() {
-  // put your setup code here, to run once:
   pinMode(LED, OUTPUT);
   pinMode(LED2, OUTPUT);
   configureTimer1A(); // llamado a configuración del timer.
 
-  pinMode(Pot, INPUT); //CANALES PARA CONVERSION A/D
-
+  //pinMode(Pot, INPUT); //CANALES PARA CONVERSION A/D
+  pinMode(SW_1, INPUT_PULLUP);
+  pinMode(SW_2, INPUT_PULLUP);
   pinMode(Buz, OUTPUT);
 
 
   Serial.begin(115200);
   delay(500);
-  
-  freq = notes[0];
+
+  freq = notes[1];
   songLastIndex = songLength(notes);
-  
+  durationBase = 128 / duration[soundCount];
+  durationBetweenNotes = durationBase * 2   / 10;
 }
 
 //*****************************************************************************************************
@@ -94,6 +178,27 @@ void loop() {
     //digitalWrite(LED2, state);
     lastTime = millis();
   }
+
+  if (digitalRead(SW_1) == 0) {
+    ROM_TimerDisable(TIMER2_BASE, TIMER_A); // Desactivar Timer 2A
+    ROM_TimerDisable(TIMER1_BASE, TIMER_A); // Desactivar  Timer 1A
+    ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // Asignar la frecuencia inicial de la cancion
+
+    //Reiniciar las variables de control de la canción
+    beat = 0;
+    soundCount = 1;
+    durationBase = 128 / duration[soundCount];
+    durationBetweenNotes = durationBase * 2   / 10;
+    freq = notes[soundCount];
+    stop = true;
+  }
+
+  if (digitalRead(SW_2) == 0) {
+    ROM_TimerEnable(TIMER2_BASE, TIMER_A); // Start Timer 2A
+    ROM_TimerEnable(TIMER1_BASE, TIMER_A); // Start Timer 1A
+    stop = true;
+  }
+
   //delay(7000);
   //ROM_TimerDisable(TIMER1_BASE, TIMER_A); // Start Timer 1A
   //delay(3000);
@@ -123,8 +228,9 @@ void Timer2AHandler(void) {
   ROM_TimerIntClear(TIMER2_BASE, TIMER_A);
 
   beat++;
-  durationBase = 128 / duration[soundCount];
-  durationBetweenNotes = durationBase * 2   / 10;
+
+  //durationBase = 128 / duration[soundCount];
+  //durationBetweenNotes = durationBase * 2   / 10;
 
   if (beat >= (128 / duration[soundCount]) - durationBetweenNotes) {
     freq = 0;
@@ -137,6 +243,8 @@ void Timer2AHandler(void) {
     if (soundCount > songLastIndex) {
       soundCount = 1;
     }
+    durationBase = 128 / duration[soundCount];
+    durationBetweenNotes = durationBase * 2   / 10;
     freq = notes[soundCount];
     ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // El último argumento es el CustomValue
   }
@@ -164,7 +272,9 @@ void configureTimer1A() {
   // Si se quiere una frecuencia de 1 kHz, el CustomValue debe ser 80000: 80MHz/80k = 1 kHz
 
   ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, 8); // Se inicia el buzzer con una frecuencia inaudible
-  ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, 640000); // "Beat" inicial: 80M/N = X Hz =~ X/2 BPM
+  ROM_TimerLoadSet(TIMER2_BASE, TIMER_A, 550000); // "Beat" inicial: 80M/N = X Hz =~ X/2 BPM
+  // Para Koribeiniki
+  // 640000 (slow) / 550000 (presto) / 400000 (fast)
 
   // Al parecer, no hay función ROM_TimerIntRegister definida. Usar la de memoria FLASH
   // El prototipo de la función es:
