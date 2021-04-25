@@ -91,24 +91,26 @@ void setup() {
   pinMode(PB2, INPUT_PULLUP);
   pinMode(PB3, INPUT);
   pinMode(PB4, INPUT);
-
+  
+/* Comentado temporalmente para probar
   FillRect(0, 0, 319, 206, 0x01EB);
   String text1 = "PLANE";
 
   LCD_Print(text1, 20, 100, 2, 0xffff, 0x01EB);
   delay(1000);
   //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
+*/
 
   //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
   //LCD_Bitmap(0, 0, 320, 240, fondo);
   FillRect(0, 0, 320, 240, 0x7E3D);
 
   for (int x = 0; x < 319; x++) {
-    LCD_Bitmap(x, 210, 80, 30, tile1);
+    LCD_Bitmap(x, 210, 80, 30, tile1); // Imprimir suelo
     x += 79;
  }
-  LCD_Bitmap(130, 129, 20, 81, tree); // Imprimir Arbol
-  LCD_Bitmap(120, 0, 20, 78, liana); // Imprimir liana
+  // Removida impresión del primer arbol
+  // Removida impresión de la primera liana
 }
 //***************************************************************************************************************************************
 // Loop Infinito
@@ -125,6 +127,7 @@ void loop() {
   jump_2(PB1State, 10, 35, 28, planej2);
   fall_1(180, 35, 28, planej1);
   jump_1(PB2State, 10, 35, 28, planej1);
+  x_move_obs(1, 20, 81, tree, 20, 78, liana);
 }
 
 //***************************************************************************************************************************************
@@ -195,15 +198,15 @@ void jump_2(int buttonState, int ylim1, int width, int height, unsigned char bit
 void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]) {
   if (rightButtonState == 0) {
     if (x_1 < xlim2) {
-      x_1++;
+      x_1--;
       LCD_Bitmap(x_1, y_1, width, height, bitmap);
       V_line(x_1 - 1, y_1, height, 0x7E3D);
     }
   }
   if (leftButtonState == 0) {
     if (x_1 >= xlim1) {
-      x_1--;
-      LCD_Bitmap(x_1, y_1, width, height, bitmap);
+      x_1++;
+      LCD_Bitmap(320 - x_1, y_1, width, height, bitmap);
       V_line(x_1 + 35, y_1, width, 0x7E3D);
     }
   }
@@ -230,8 +233,25 @@ void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned i
 //****************************************
 // Movimiento horizontal de los obstaculos
 //****************************************
+void x_move_obs(unsigned int speed, unsigned int width1, unsigned int height1, 
+                unsigned char bitmap1[], unsigned int width2, unsigned int height2, unsigned char bitmap2[]) {
+    x_1 += speed; // Control de velocidad de obstaculos
+    
+    // Esta instrucción puede provocar que los obstaculos no se borren adecuadamente al salir de la pantalla.
+    if (x_1 > 320 + width1 ){ 
+      x_1 = 0;
+    }
 
+    // Imprimir obstaculos
+    LCD_Bitmap(320 - x_1, 210-height1, width1, height1, bitmap1); 
+    LCD_Bitmap(320 - x_1, 0, width2, height2, bitmap2); 
 
+    // Borrar rastro de la pantalla. Borra más lineas con el incremento de la variable "speed"
+    for (uint8_t i = 1; i < speed + 1; ++i){
+      V_line(320 - x_1 + width1 - i, 209-height1, height1, 0x7E3D);
+      V_line(320 - x_1 + width2 - i, 0, height2, 0x7E3D);    
+    }
+}
 //***************************************************************************************************************************************
 // Función para inicializar LCD
 //***************************************************************************************************************************************
