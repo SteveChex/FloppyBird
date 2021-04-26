@@ -107,7 +107,7 @@ int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitm
 int fall_1(int ylim2, int width, int height, unsigned char bitmap[]);
 int fall_2(int ylim2, int width, int height, unsigned char bitmap[]);
 
-extern uint8_t tile[];
+
 
 //***************************************************************************************************************************************
 // Inicialización
