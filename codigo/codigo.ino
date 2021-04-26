@@ -59,9 +59,15 @@ int anclasY_obs[2] = {0, 0};
 int anclas_aviones[2] = {0, 0};
 
 // valores pseudoaleatorios para los obstáculos
-int moveObs[9] = {0, 15, -5, 25, -12, 2, 20, -25, -2};
-int maxPRandom = 8;
+int randValues[] = {0, 3, 1, 6, 5, 2, 3, 4, 1, 2,
+                    0, 6, 6, 2, 1, 4, 0, 0, 3, 2, 
+                    0, 6, 0, 5, 2, 0, 1, 4, 3, 6, 
+                    0, 3, 0, 3, 1, 2, 2, 4, 5, 6};
+int maxPRandom = 39;
 int randomControl = 0;
+int obstaculosPorVelocidad[] = {3, 3, 3, 4, 4, 4, 4, 5, 7, 9,
+                    10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
+int obsControl = 0;
 bool changeValue = false;
 
 // Coordenada x de los obstáculos
@@ -79,6 +85,10 @@ int h_tree = 81, h_liana = 78;
 // Variables del sistema de vidas
 uint8_t vidasJ1 = 3, vidasJ2 = 3;
 bool impactoPrevioJ1 = false, impactoPrevioJ2 = false;
+bool reiniciarObstaculos = false;
+
+// Variables para control de estados del juego (jugando, fin del juego, reinicio, etc)
+bool jugando = false, ganador = false, apagarControlJ1 = false, apagarControlJ2 = false; 
 
 
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};
@@ -106,8 +116,6 @@ int jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitm
 int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
 int fall_1(int ylim2, int width, int height, unsigned char bitmap[]);
 int fall_2(int ylim2, int width, int height, unsigned char bitmap[]);
-
-
 
 //***************************************************************************************************************************************
 // Inicialización
@@ -151,29 +159,31 @@ void setup() {
 void loop() {
   PB1State = digitalRead(PB1);
   PB2State = digitalRead(PB2);
-  // Linea x_move borrada
-  PB3State = digitalRead(PB3);
-  PB4State = digitalRead(PB4);
-  // Linea x_move borrada
 
-  //if (randomControl > maxPRandom){
-  //  randomControl = 0;
-  //}
-  x_move_obs(movSpeed, 20, 81 , tree, 20, 78 , liana, &x_coord_obs, &anclasY_obs[1], &anclasY_obs[0]);
-  //if (x_coord_obs < 15){
-  //  randomControl++;
-  //}
-    if (PB1State == 0){
+  x_move_obs(&x_coord_obs, &anclasY_obs[1], &anclasY_obs[0]); // Mueve los obstáculos específicos de un nivel
+
+  // Control de movimientos y desactivación de controles cuando un jugador pierde 
+  if (PB1State == 0 && !apagarControlJ2){
     anclas_aviones[1] = jump_2(PB1State, 10, 35, 28, planej2);
   } else {
-    anclas_aviones[1] = fall_2(180, 35, 28, planej2);
+    if (apagarControlJ2){
+      FillRect(posx2, anclas_aviones[1], 38, 28, 0x7E3D);
+    } else {
+      anclas_aviones[1] = fall_2(180, 35, 28, planej2);
+    }
   }
-  if (PB2State == 0){
+  if (PB2State == 0 && !apagarControlJ1){
     anclas_aviones[0] = jump_1(PB2State, 10, 35, 28, planej1);
   } else {
-    anclas_aviones[0] = fall_1(180, 35, 28, planej1);
+    if (apagarControlJ1){
+      FillRect(posx1, anclas_aviones[0], 38, 28, 0x7E3D);
+    } else {
+      anclas_aviones[0] = fall_1(180, 35, 28, planej1);
+    }
   }
-  depuracion();
+  
+  //depuracion(); // Linea para mostrar parametros de depuración.
+  
   // -------- Detección de colisión ----------
   // Previamente se definieron anclas, que son la coordenada inicial a partir de la cual se imprimió el objeto.
   // Si se detecta que el Area del ancla del avion colisiona con el area del ancla de algun obstáculo, entonces
@@ -187,20 +197,49 @@ void loop() {
           !(posx2 + 50 < x_coord_obs || posx2 + 8 > x_coord_obs)
   ;
   // -------- --------------------- ----------
-  if (x_coord_obs > 120) {
-    
-  } else {        
-    if (colJ1 && !impactoPrevioJ1){
-      vidasJ1--;
+  
+  if (x_coord_obs < 120) {
+    reiniciarObstaculos = true;  
+    if (colJ1){
+      if (!impactoPrevioJ1){
+        vidasJ1--;
+      }
       impactoPrevioJ1 = true;
     } else {
-      impactoPrevioJ1 = false;
+      if (reiniciarObstaculos){
+        impactoPrevioJ1 = false;
+      }
     }
     if (colJ2){
-      
+      if (!impactoPrevioJ2){
+        vidasJ2--;
+      }
+      impactoPrevioJ2 = true;
+    } else {
+      if (reiniciarObstaculos){
+        impactoPrevioJ2 = false;
+      }
+    }
+  } 
+  
+  // Detección de un ganador al reiniciarse la posición de los obstáculos
+  if (!reiniciarObstaculos){
+    if (vidasJ1 == 0 && vidasJ2 == 0){
+      LCD_Print("DRAW", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
+      apagarControlJ1 = true;
+      apagarControlJ2 = true;
+      movSpeed = 0;
+    } else if (vidasJ1 > 0 && vidasJ2 == 0){
+      LCD_Print("-J1-", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
+      apagarControlJ2 = true;
+      movSpeed = 0;
+    } else if (vidasJ1 ==  0 && vidasJ2 > 0){
+      LCD_Print("-J2-", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
+      apagarControlJ1 = true;
+      movSpeed = 0;
     }
   }
-}
+} // end Loop()
 
 //***************************************************************************************************************************************
 // Funciones de movimiento
@@ -314,42 +353,58 @@ void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned i
 // La función retorna valores int para
 // entregar coordenadas al ciclo principal.
 //****************************************
-void x_move_obs(unsigned int speed, unsigned int width1, unsigned int height1,
-               unsigned char bitmap1[], unsigned int width2, unsigned int height2, unsigned char bitmap2[],
-               int *xcoordObs, int *ycoordBitmap1, int *ycoordBitmap2) {
-  x_1 += speed; // Control de velocidad de obstaculos
-
+void x_move_obs(int *xcoordObs, int *ycoordBitmap1, int *ycoordBitmap2) {
+  
+  x_1 += movSpeed; // Control de velocidad de obstaculos
+  
   // Esta instrucción puede provocar que los obstaculos no se borren adecuadamente al salir de la pantalla.
-  if (x_1 > 320 + width1 ) {
+  if (x_1 > 340 ) { // Reinicio de la variable contadora de coordenada x
     x_1 = 0;
+    reiniciarObstaculos = false; // Reinicio de variables de control de obstáculos y velocidad
+    randomControl++;
+    if (randomControl > maxPRandom){
+      randomControl = 0;
+    }
+    obsControl++;
+    if (obsControl > obstaculosPorVelocidad[movSpeed]){
+      obsControl = 0;
+      if (movSpeed != 15){
+        movSpeed++;
+      }
+    }
   }
-
+  int tempHeightTree = 210, tempHeightLiana = 0;
+  uint8_t valorPrincipal = randValues[randomControl]; 
   // Imprimir obstaculos
-  LCD_Bitmap(320 - x_1, 210 - height1, width1, height1, bitmap1);
-  LCD_Bitmap(320 - x_1, 0, width2, height2, bitmap2);
-
-  // Borrar rastro de la pantalla. Borra más lineas con el incremento de la variable "speed"
-  for (uint8_t i = 1; i < speed + 1; ++i) {
-    V_line(320 - x_1 + width1 - i, 209 - height1, height1, 0x7E3D);
-    V_line(320 - x_1 + width2 - i, 0, height2, 0x7E3D);
+  //LCD_Bitmap(320 - x_1, 210 - height1, width1, height1, bitmap1);
+  //LCD_Bitmap(320 - x_1, 0, width2, height2, bitmap2);
+  LCD_Bitmap(320 - x_1, tempHeightTree - 28, 20, 28, tree_b3);
+  tempHeightTree -= 28;
+  for (uint8_t i = 1; i < valorPrincipal*3; i++){
+    LCD_Bitmap(320 - x_1, tempHeightTree - 6, 20, 6, tree_b2);
+    tempHeightTree -= 6;
   }
+  LCD_Bitmap(320 - x_1, tempHeightTree - 11, 20, 11, tree_b1);
+  tempHeightTree -= 11;
 
-  // Imprimir lineas de colision (Temporal)
-  H_line(340 - x_1 - width2, height2, height2, 0x3400);
-  H_line(340 - x_1 - width1, 209 - height1, height1, 0x3400);
-  V_line(340 - x_1 - width2, 0, height2, 0x3400);
-  V_line(340 - x_1, 0, height2, 0x3400);
-
-  V_line(340 - x_1 - width1, 209 - height1, height1, 0x3400);
-  V_line(340 - x_1, 209 - height1, height1, 0x3400);
-  //V_line(340 - x_1 - width2, 0, heigth2, 0x3400);
-  //V_line(0, 209 - height1, heigth1, 0x1E11);
-  V_line(340 - x_1 + 1, 209 - height1, height1, 0x7E3D);
-  V_line(340 - x_1 + 1, 0, height2, 0x7E3D);
-
+  LCD_Bitmap(320 - x_1, 0, 20, 3, liana_b1);
+  tempHeightLiana += 3;
+  for (uint8_t i = 1; i < 6 - valorPrincipal; i++){
+    LCD_Bitmap(320 - x_1, tempHeightLiana, 20, 23, liana_b2);
+    tempHeightLiana += 23;
+  }
+  LCD_Bitmap(320 - x_1, tempHeightLiana, 20, 15, liana_b3);
+  tempHeightLiana += 15;
+  
+  // Borrar rastro de la pantalla. Borra más lineas con el incremento de la variable "speed"
+  for (uint8_t i = 1; i < movSpeed + 1; ++i) {
+    V_line(340 - x_1 - 2 + i, 0, 210, 0x7E3D);
+  }
+  
+  // Valores de retorno
   *xcoordObs = 340 - x_1 ;
-  *ycoordBitmap1 = 209 - height1;
-  *ycoordBitmap2 = height2;
+  *ycoordBitmap1 = tempHeightTree;
+  *ycoordBitmap2 = tempHeightLiana;
 }
 //****************************************
 // Función de depuración
