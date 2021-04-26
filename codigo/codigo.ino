@@ -58,11 +58,27 @@ int anclasY_obs[2] = {0, 0};
 // variables posx1 y posx2
 int anclas_aviones[2] = {0, 0};
 
+// valores pseudoaleatorios para los obstáculos
+int moveObs[9] = {0, 15, -5, 25, -12, 2, 20, -25, -2};
+int maxPRandom = 8;
+int randomControl = 0;
+bool changeValue = false;
+
 // Coordenada x de los obstáculos
 int x_coord_obs = 0;
 
 // bandera de colision de los jugadores
 bool colJ1 = false, colJ2 = false;
+
+// velocidad de barrido de obstáculos
+int movSpeed = 1;
+
+// altura de obstáculos
+int h_tree = 81, h_liana = 78;
+
+// Variables del sistema de vidas
+uint8_t vidasJ1 = 3, vidasJ2 = 3;
+bool impactoPrevioJ1 = false, impactoPrevioJ2 = false;
 
 
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};
@@ -83,13 +99,13 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int columns, int index, char flip, char offset);
 
+// Funciones definidas para el juego
 void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 int jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
 int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
 int fall_1(int ylim2, int width, int height, unsigned char bitmap[]);
 int fall_2(int ylim2, int width, int height, unsigned char bitmap[]);
-
 
 extern uint8_t tile[];
 
@@ -140,8 +156,14 @@ void loop() {
   PB4State = digitalRead(PB4);
   // Linea x_move borrada
 
-  x_move_obs(1, 20, 81, tree, 20, 78, liana, &x_coord_obs, &anclasY_obs[1], &anclasY_obs[0]);
-  if (PB1State == 0){
+  //if (randomControl > maxPRandom){
+  //  randomControl = 0;
+  //}
+  x_move_obs(movSpeed, 20, 81 , tree, 20, 78 , liana, &x_coord_obs, &anclasY_obs[1], &anclasY_obs[0]);
+  //if (x_coord_obs < 15){
+  //  randomControl++;
+  //}
+    if (PB1State == 0){
     anclas_aviones[1] = jump_2(PB1State, 10, 35, 28, planej2);
   } else {
     anclas_aviones[1] = fall_2(180, 35, 28, planej2);
@@ -151,38 +173,31 @@ void loop() {
   } else {
     anclas_aviones[0] = fall_1(180, 35, 28, planej1);
   }
-  // -------- Lineas de depuración ----------
-  // Despliegan visualmente la coordenada x de los obstáculos y lo muestran en un cuadro en pantalla.
-  V_line(100, 0, 240, 0x0000);
-  char str[3];
-  sprintf(str,"%d", x_coord_obs);
-  FillRect(0, 0, 100, 12, 0x01EB);
-  LCD_Print(str, 0, 0, 1, 0xffff, 0x01EB);
-  // -------- -------------------- ----------
-
+  depuracion();
   // -------- Detección de colisión ----------
   // Previamente se definieron anclas, que son la coordenada inicial a partir de la cual se imprimió el objeto.
   // Si se detecta que el Area del ancla del avion colisiona con el area del ancla de algun obstáculo, entonces
   // las variables serán de valor "true". En caso contrario, serán de valor "false". 
   // Estas variables controlan un if más adelante. Por lo que será alli donde se programará cualquier funcionalidad necesaria. 
   // Los numeros que se suman a las coordenadas son parametros de ajuste, para hacer que la colision no sea demasiado precisa
-  colJ1 = (anclas_aviones[0] + 4 < anclasY_obs[0] || anclas_aviones[0] + 24 > anclasY_obs[1]) && 
-          !(posx1 + 50 < x_coord_obs || posx1 + 5 > x_coord_obs)
+  colJ1 = (anclas_aviones[0] + 6 < anclasY_obs[0] || anclas_aviones[0] + 22 > anclasY_obs[1]) && 
+          !(posx1 + 50 < x_coord_obs || posx1 + 8 > x_coord_obs)
   ;
-  colJ2 = (anclas_aviones[1] + 4 < anclasY_obs[0] || anclas_aviones[1] + 24 > anclasY_obs[1]) &&
-          !(posx2 + 50 < x_coord_obs || posx2 + 5 > x_coord_obs)
+  colJ2 = (anclas_aviones[1] + 6 < anclasY_obs[0] || anclas_aviones[1] + 22 > anclasY_obs[1]) &&
+          !(posx2 + 50 < x_coord_obs || posx2 + 8 > x_coord_obs)
   ;
   // -------- --------------------- ----------
-  
-  if (x_coord_obs > 100) {
-    LCD_Print("---", 25, 0, 1, 0xffff, 0x01EB); // Para depuración
-  } else {    
-    LCD_Print("COL", 25, 0, 1, 0xffff, 0x01EB); // Para depuración
-    if (colJ1){
-      LCD_Print("J1", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
+  if (x_coord_obs > 120) {
+    
+  } else {        
+    if (colJ1 && !impactoPrevioJ1){
+      vidasJ1--;
+      impactoPrevioJ1 = true;
+    } else {
+      impactoPrevioJ1 = false;
     }
     if (colJ2){
-      LCD_Print("J2", 80, 0, 1, 0xffff, 0x01EB); // Para depuración
+      
     }
   }
 }
@@ -335,7 +350,30 @@ void x_move_obs(unsigned int speed, unsigned int width1, unsigned int height1,
   *xcoordObs = 340 - x_1 ;
   *ycoordBitmap1 = 209 - height1;
   *ycoordBitmap2 = height2;
-  
+}
+//****************************************
+// Función de depuración
+//****************************************
+void depuracion(void) {
+  // -------- Lineas de depuración ----------
+  // Despliegan visualmente la coordenada x de los obstáculos y lo muestran en un cuadro en pantalla.
+  V_line(100, 0, 240, 0x0000);
+  char str[3];
+  sprintf(str,"%d", x_coord_obs);
+  FillRect(0, 0, 100, 12, 0x01EB);
+  LCD_Print(str, 0, 0, 1, 0xffff, 0x01EB);
+  // -------- -------------------- ----------
+  if (x_coord_obs > 120) {
+    LCD_Print("---", 25, 0, 1, 0xffff, 0x01EB); // Para depuración
+  } else {    
+    LCD_Print("COL", 25, 0, 1, 0xffff, 0x01EB); // Para depuración
+    if (colJ1){
+      LCD_Print("J1", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
+    }
+    if (colJ2){
+      LCD_Print("J2", 80, 0, 1, 0xffff, 0x01EB); // Para depuración
+    }
+  }
 }
 //***************************************************************************************************************************************
 // Función para inicializar LCD
