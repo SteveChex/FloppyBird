@@ -41,7 +41,7 @@
 File dir1, dir2;
 
 uint32_t freq = 0;
-bool state = false, sta2 = false, stop = false, oneShoot = false;
+bool state = false, sta2 = false, stop = false, oneShoot = false, oneRead = false;
 uint8_t soundCount = 1, durationCount = 0, beat = 0, durationBase = 0, durationBetweenNotes = 0,
         songLastIndex = 0;
 uint8_t changeSong = 1;
@@ -200,6 +200,10 @@ void setup() {
   pinMode(SW_1, INPUT_PULLUP);
   pinMode(SW_2, INPUT_PULLUP);
   pinMode(Buz, OUTPUT);
+  pinMode(PE_2, INPUT_PULLUP);
+  pinMode(PA_6, INPUT_PULLUP);
+  pinMode(PA_7, INPUT_PULLUP);
+
   loadSong(1);
   oneShoot = true; // La primera cancion solo sonará una vez: La intro
 
@@ -221,6 +225,13 @@ void setup() {
 //*****************************************************************************************************
 
 void loop() {
+  uint8_t song1 = digitalRead(PE_2);
+  if (song1 == 0) {
+    oneRead = true;
+  } else {
+    oneRead = false;
+  }
+
   if (millis() > lastTime + interval) {
     if (lastTime <= 0) {
       // readSongSD(1);
@@ -231,7 +242,8 @@ void loop() {
     lastTime = millis();
   }
 
-  if (digitalRead(SW_1) == 0) {
+  //if (digitalRead(SW_1) == 0) {
+  if (song1 == 1) {
     ROM_TimerDisable(TIMER2_BASE, TIMER_A); // Desactivar Timer 2A
     ROM_TimerDisable(TIMER1_BASE, TIMER_A); // Desactivar  Timer 1A
     ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // Asignar la frecuencia inicial de la cancion
@@ -246,7 +258,7 @@ void loop() {
     stop = true;
   }
 
-  if (digitalRead(SW_2) == 0) {
+  if (song1 == 0) {
     if (stop) {
       switch (changeSong) {
         case 1:
@@ -269,11 +281,10 @@ void loop() {
           break;
       }
       stop = false;
+      ROM_TimerEnable(TIMER2_BASE, TIMER_A); // Start Timer 2A
+      ROM_TimerEnable(TIMER1_BASE, TIMER_A); // Start Timer 1A
     }
-    ROM_TimerEnable(TIMER2_BASE, TIMER_A); // Start Timer 2A
-    ROM_TimerEnable(TIMER1_BASE, TIMER_A); // Start Timer 1A
   }
-
 }
 
 //*****************************************************************************************************
@@ -565,7 +576,7 @@ void readSongSD(uint8_t index) {
   dir1.close();
 
   // Ajustando manualmente el ultimo valor de duracion
-  newDuration[contKeeper2] = 64;  
+  newDuration[contKeeper2] = 64;
 
 
   for (int i = 0; i < contKeeper + 1; i++) {
