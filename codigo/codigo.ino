@@ -6,6 +6,11 @@
    IE3027: Electrónica Digital 2 - 2019
 */
 //***************************************************************************************************************************************
+
+//***************************************************************************************************************************************
+// Librerías y definiciones
+//***************************************************************************************************************************************
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <TM4C123GH6PM.h>
@@ -35,6 +40,11 @@
 #define PB3 PE_3
 #define PB4 PE_4
 
+//***************************************************************************************************************************************
+// Definición de variables
+//***************************************************************************************************************************************
+
+// lectura del estado de pushbuttons
 int PB1State = 1;
 int PB2State = 1;
 int PB3State = 1;
@@ -42,10 +52,36 @@ int PB4State = 1;
 int x_1 = 20;
 int y_1 = 20;
 
+// variables de la pantalla de inicio
+// variable de antirebote de botones
+int pressed1 = 0;
+int pressed2 = 0;
+
+// variable para selección de nivel
+int level = 0;
+
+// color de llenado según el nivel
+int fill_color;
+
+// strings para mostrar texto en la pantalla de inicio
+String TITLE1 = "FLOPPY";
+String TITLE2 = "BIRDN'T";
+String play1 = "PLAY MAP 1";
+String play2 = "PLAY MAP 2";
+String play3 = "PLAY MAP 3";
+String text2 = "LICENSED BY";
+String text3 = "NITENGO OF AMERICA INC";
+String indicador = "+";
+
+// string para almacenar el valor de las vida de cada jugador
+char str_vidaj1[1];
+char str_vidaj2[1];
+
+// posiciones de J1 y J2 en pantalla
 int posx1 = 20;
-int posy1 = 20;
+int posy1 = 100;
 int posx2 = 60;
-int posy2 = 20;
+int posy2 = 100;
 
 // Guardar posiciones de las anclas en variables globales
 // anclasY_obs[0]: Ancla de Liana
@@ -92,6 +128,7 @@ bool jugando = false, ganador = false, apagarControlJ1 = false, apagarControlJ2 
 
 
 int DPINS[] = {PB_0, PB_1, PB_2, PB_3, PB_4, PB_5, PB_6, PB_7};
+
 //***************************************************************************************************************************************
 // Functions Prototypes
 //***************************************************************************************************************************************
@@ -105,58 +142,128 @@ void V_line(unsigned int x, unsigned int y, unsigned int l, unsigned int c);
 void Rect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c);
 void FillRect(unsigned int x, unsigned int y, unsigned int w, unsigned int h, unsigned int c);
 void LCD_Print(String text, int x, int y, int fontSize, int color, int background);
-
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int columns, int index, char flip, char offset);
 
-// Funciones definidas para el juego
+/// Funciones definidas para el juego
 void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]);
 int jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
 int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitmap[]);
 int fall_1(int ylim2, int width, int height, unsigned char bitmap[]);
 int fall_2(int ylim2, int width, int height, unsigned char bitmap[]);
+void init(void);
+
+extern uint8_t getready[];
+extern uint8_t j1win[];
+extern uint8_t j2win[];
 
 //***************************************************************************************************************************************
 // Inicialización
 //***************************************************************************************************************************************
 void setup() {
+
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   Serial.println("Inicio");
   LCD_Init();
-  //LCD_Clear(0x00);
 
+  
+  // configuración de botones
   pinMode(PB1, INPUT_PULLUP);
   pinMode(PB2, INPUT_PULLUP);
   pinMode(PB3, INPUT);
   pinMode(PB4, INPUT);
 
-  /* Comentado temporalmente para probar
-    FillRect(0, 0, 319, 206, 0x01EB);
-    String text1 = "PLANE";
+  FillRect(0, 0, 320, 240, 0x0000);   // llenado de pantalla de inicio
+  init();                             // llamada al texto e imágenes de inicio
+  
+  LCD_Print(indicador, 105, 140, 1, 0xFBE4, 0x0000);  // indicador de selección
+  
+  while(PB1State == 1){
+    PB1State = digitalRead(PB1);
+    PB2State = digitalRead(PB2);
+    LCD_Print(indicador, 105, 140+level, 1, 0xFBE4, 0x0000);
+    FillRect(105, 125+60, 5, 10, 0x0000);
+    Serial.println(level);
+    if(level > 30){
+      level = 0;
+    }
+    if (PB2State == HIGH){
+      pressed1 = 1;
+    }
+    if (PB2State == LOW && pressed1 == 1){
+      level = level + 15;   
+      FillRect(105, 125+level, 5, 10, 0x0000);
+      pressed1 = 0;
+    }
+  }
 
-    LCD_Print(text1, 20, 100, 2, 0xffff, 0x01EB);
-    delay(1000);
-    //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
-  */
+  //--------------------------------------------------
+  // Asignación de colores según el mapa seleccionado
+  //--------------------------------------------------
+  if (level == 0){
+    Serial.println("Mapa 1 seleccionado");
+    fill_color = 0x7e3d;  // COLOR HEX: 78c6ec
+  }
+  if (level == 15){
+    Serial.println("Mapa 2 seleccionado");
+    fill_color = 0x21C8;  // COLOR HEX: 203945
+  }
+  if (level == 30){
+    Serial.println("Mapa 3 seleccionado");
+    fill_color = 0xCC69;  // COLOR HEX: ef870c
+  }
+  //-------------------------------------------------
 
-  //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
-  //LCD_Bitmap(0, 0, 320, 240, fondo);
-  FillRect(0, 0, 320, 240, 0x7E3D);
+  //----------------------------------------------
+  // Creación del cielo y el suelo (fondo)       
+  //----------------------------------------------
+  FillRect(0, 0, 320, 240, fill_color); 
 
   for (int x = 0; x < 319; x++) {
     LCD_Bitmap(x, 210, 80, 30, tile1); // Imprimir suelo
     x += 79;
   }
-  // Removida impresión del primer arbol
-  // Removida impresión de la primera liana
+  //----------------------------------------------
+
+  //----------------------------------------------
+  // Marcador de vidas de ambos jugadores
+  //----------------------------------------------
+  FillRect(10, 215, 115, 20, 0xDB25); 
+  H_line(10, 215, 115, 0x0000);
+  H_line(10, 235, 115, 0x0000);
+  V_line(10, 215, 20, 0x0000);
+  V_line(10+115, 215, 20, 0x0000);
+  LCD_Bitmap(20, 219, 10, 9, heart);
+  String vidaj1 = "J1:";
+  String vidaj2 = "J2:";
+  LCD_Print(vidaj1, 35, 218, 1, 0xffff, 0xDB25);
+  LCD_Print(vidaj2, 80, 218, 1, 0xffff, 0xDB25);
+
+  sprintf(str_vidaj1,"%1d", vidasJ1);
+  sprintf(str_vidaj2,"%1d", vidasJ2);
+  LCD_Print(str_vidaj1, 60, 218, 1, 0xffff, 0xDB25);
+  FillRect(65, 218, 10, 15, 0xDB25); 
+  LCD_Print(str_vidaj2, 105, 218, 1, 0xffff, 0xDB25);
+  //----------------------------------------------
+
+  //------------------------------------------------------------
+  // Posiciones iniciales de los jugadores y mensaje de inicio
+  //------------------------------------------------------------
+  LCD_Bitmap(posx1, posy1, 35, 28, planej1);
+  LCD_Bitmap(posx2, posy2, 35, 28, planej2);
+  LCD_Bitmap(130, 100, 150, 40, getready);
+  delay(1000);
+  FillRect(130, 100, 150, 40, fill_color); 
+  //------------------------------------------------------------
 }
 //***************************************************************************************************************************************
 // Loop Infinito
 //***************************************************************************************************************************************
 void loop() {
+  
   PB1State = digitalRead(PB1);
   PB2State = digitalRead(PB2);
 
@@ -167,7 +274,7 @@ void loop() {
     anclas_aviones[1] = jump_2(PB1State, 10, 35, 28, planej2);
   } else {
     if (apagarControlJ2){
-      FillRect(posx2, anclas_aviones[1], 38, 28, 0x7E3D);
+      FillRect(posx2, anclas_aviones[1], 38, 28, fill_color);
     } else {
       anclas_aviones[1] = fall_2(180, 35, 28, planej2);
     }
@@ -176,7 +283,7 @@ void loop() {
     anclas_aviones[0] = jump_1(PB2State, 10, 35, 28, planej1);
   } else {
     if (apagarControlJ1){
-      FillRect(posx1, anclas_aviones[0], 38, 28, 0x7E3D);
+      FillRect(posx1, anclas_aviones[0], 38, 28, fill_color);
     } else {
       anclas_aviones[0] = fall_1(180, 35, 28, planej1);
     }
@@ -203,6 +310,9 @@ void loop() {
     if (colJ1){
       if (!impactoPrevioJ1){
         vidasJ1--;
+        sprintf(str_vidaj1,"%1d", vidasJ1);
+        LCD_Print(str_vidaj1, 60, 218, 1, 0xffff, 0xDB25);
+        FillRect(65, 218, 10, 15, 0xDB25); 
       }
       impactoPrevioJ1 = true;
     } else {
@@ -213,6 +323,8 @@ void loop() {
     if (colJ2){
       if (!impactoPrevioJ2){
         vidasJ2--;
+        sprintf(str_vidaj2,"%1d", vidasJ2);
+        LCD_Print(str_vidaj2, 105, 218, 1, 0xffff, 0xDB25);
       }
       impactoPrevioJ2 = true;
     } else {
@@ -245,6 +357,21 @@ void loop() {
 // Funciones de movimiento
 //***************************************************************************************************************************************
 //****************************************
+// Inicio
+//****************************************
+// :::: Despliega mensaje de inicio y titulo
+
+void init(void){
+  LCD_Print(play1, 118, 140, 1, 0xFBE4, 0x0000);
+  LCD_Print(play2, 118, 155, 1, 0xFBE4, 0x0000);
+  LCD_Print(play3, 118, 170, 1, 0xFBE4, 0x0000);
+  LCD_Print(text2, 114, 200, 1, 0xffff, 0x0000);
+  LCD_Print(text3, 70, 210, 1, 0xffff, 0x0000);
+  LCD_Bitmap(220, 80, 45, 36, plane_init);
+  LCD_Bitmap(60, 80, 150, 37, title);
+};
+  
+//****************************************
 // Caída
 //****************************************
 
@@ -256,8 +383,8 @@ int fall_1(int ylim2, int width, int height, unsigned char bitmap[]) {
   }
   LCD_Bitmap(posx1, posy1, width, height, bitmap);
   LCD_Sprite(posx1 + width, posy1 + 3, 3, 21, helice, 5, anim, 0, 0);
-  H_line(posx1, posy1 - 1, width, 0x7E3D);
-  H_line(posx1, posy1 - 1 - 1, width, 0x7E3D);
+  H_line(posx1, posy1 - 1, width, fill_color);
+  H_line(posx1, posy1 - 1 - 1, width, fill_color);
   return posy1;
 };
 
@@ -269,8 +396,8 @@ int fall_2(int ylim2, int width, int height, unsigned char bitmap[]) {
   }
   LCD_Bitmap(posx2, posy2, width, height, bitmap);
   LCD_Sprite(posx2 + width, posy2 + 3, 3, 21, helice, 5, anim, 0, 0);
-  H_line(posx2, posy2 - 1, width, 0x7E3D);
-  H_line(posx2, posy2 - 1 - 1, width, 0x7E3D);
+  H_line(posx2, posy2 - 1, width, fill_color);
+  H_line(posx2, posy2 - 1 - 1, width, fill_color);
   return posy2;
 };
 
@@ -282,14 +409,14 @@ int jump_1(int buttonState, int ylim1, int width, int height, unsigned char bitm
   int anim = (posy1 / 35) % 2;
   if (buttonState == 0 & posy1 - 5 > ylim1) {
     posy1 = posy1 - 5;
-    H_line(posx1, posy1 + height, width, 0x7E3D);
+    H_line(posx1, posy1 + height, width, fill_color);
     LCD_Bitmap(posx1, posy1, width, height, bitmap);
     LCD_Sprite(posx1 + width, posy1 + 3, 3, 21, helice, 5, anim, 0, 0);
     for (int i = 0; i < 5; i++) {
-      H_line(posx1, posy1 + 28 + i, width, 0x7E3D);
+      H_line(posx1, posy1 + 28 + i, width, fill_color);
     }
   }
-  V_line(posx1 + width+1, posy1 + 28, 3, 0x7E3D);
+  V_line(posx1 + width+1, posy1 + 28, 3, fill_color);
   return posy1;
 };
 
@@ -298,14 +425,14 @@ int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitm
   int anim = (posy2 / 35) % 2;
   if (buttonState == 0 & posy2 - 5 > ylim1) {
     posy2 = posy2 - 5;
-    H_line(posx2, posy2 + height, width, 0x7E3D);
+    H_line(posx2, posy2 + height, width, fill_color);
     LCD_Bitmap(posx2, posy2, width, height, bitmap);
     LCD_Sprite(posx2 + width, posy2 + 3, 3, 21, helice, 5, anim, 0, 0);
     for (int i = 0; i < 5; i++) {
-      H_line(posx2, posy2 + 28 + i, width, 0x7E3D);
+      H_line(posx2, posy2 + 28 + i, width, fill_color);
     }
   }
-  V_line(posx2 + width + 1, posy2 + 28, 3, 0x7E3D);
+  V_line(posx2 + width + 1, posy2 + 28, 3, fill_color);
   return posy2;
 };
 
@@ -317,14 +444,14 @@ void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigne
     if (x_1 < xlim2) {
       x_1--;
       LCD_Bitmap(x_1, y_1, width, height, bitmap);
-      V_line(x_1 - 1, y_1, height, 0x7E3D);
+      V_line(x_1 - 1, y_1, height, fill_color);
     }
   }
   if (leftButtonState == 0) {
     if (x_1 >= xlim1) {
       x_1++;
       LCD_Bitmap(320 - x_1, y_1, width, height, bitmap);
-      V_line(x_1 + 35, y_1, width, 0x7E3D);
+      V_line(x_1 + 35, y_1, width, fill_color);
     }
   }
 }
@@ -336,14 +463,14 @@ void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned i
     if (y_1 < ylim2) {
       y_1++;
       LCD_Bitmap(x_1, y_1, width, height, bitmap);
-      H_line(x_1, y_1 - 1, width, 0x7E3D);
+      H_line(x_1, y_1 - 1, width, fill_color);
     }
   }
   if (downButtonState == 0) {
     if (y_1 >= ylim1) {
       y_1--;
       LCD_Bitmap(x_1, y_1, width, height, planej1);
-      H_line(x_1, y_1 + 25, width, 0x7E3D);
+      H_line(x_1, y_1 + 25, width, fill_color);
     }
   }
 }
@@ -398,7 +525,7 @@ void x_move_obs(int *xcoordObs, int *ycoordBitmap1, int *ycoordBitmap2) {
   
   // Borrar rastro de la pantalla. Borra más lineas con el incremento de la variable "speed"
   for (uint8_t i = 1; i < movSpeed + 1; ++i) {
-    V_line(340 - x_1 - 2 + i, 0, 210, 0x7E3D);
+    V_line(340 - x_1 - 2 + i, 0, 210, fill_color);
   }
   
   // Valores de retorno
@@ -734,9 +861,62 @@ void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int
 
   for (int i = 0; i < width; i++) {
     for (int j = 0; j < height; j++) {
-      LCD_DATA(bitmap[k]);
-      LCD_DATA(bitmap[k + 1]);
-      //LCD_DATA(bitmap[k]);
+      if(level == 15){
+        if(bitmap[k] == 0x7e && bitmap[k+1] == 0x3d){ 
+          LCD_DATA(0x21); // 0x21C8
+          LCD_DATA(0xc8);
+        }
+        else if ((bitmap[k] == 0x1e && bitmap[k+1] == 0x26) || (bitmap[k] == 0x2d && bitmap[k+1] == 0xc7)|| (bitmap[k] == 0x25 && bitmap[k+1] == 0xa7)){
+          LCD_DATA(0x0a); // 0x2365 512D
+          LCD_DATA(0xa2);
+        }
+        else if ((bitmap[k] == 0x4e && bitmap[k+1] == 0xe6) || (bitmap[k] == 0x4f && bitmap[k+1] == 0xe5)|| (bitmap[k] == 0x47 && bitmap[k+1] == 0x63)){
+          LCD_DATA(0x2c); // 0x2365 512D
+          LCD_DATA(0x62);
+        }
+        else if ((bitmap[k] == 0x56 && bitmap[k+1] == 0xca)){
+          LCD_DATA(0x13); // 0x2365 512D
+          LCD_DATA(0x35);
+        }
+        else if ((bitmap[k] == 0x05 && bitmap[k+1] == 0x29)){
+          LCD_DATA(0x01); // 0x2365 512D
+          LCD_DATA(0x06);
+        }
+        else{
+          LCD_DATA(bitmap[k]);
+          LCD_DATA(bitmap[k + 1]);
+        }
+      }
+      if(level == 30){
+        if(bitmap[k] == 0x7e && bitmap[k+1] == 0x3d){ 
+          LCD_DATA(0xcc); // 0xEC21
+          LCD_DATA(0x69);
+        }
+        else if ((bitmap[k] == 0x1e && bitmap[k+1] == 0x26) || (bitmap[k] == 0x2d && bitmap[k+1] == 0xc7)|| (bitmap[k] == 0x25 && bitmap[k+1] == 0xa7)){
+          LCD_DATA(0x9a); // 0x2365 512D
+          LCD_DATA(0xe4);
+        }
+        else if ((bitmap[k] == 0x4e && bitmap[k+1] == 0xe6) || (bitmap[k] == 0x4f && bitmap[k+1] == 0xe5)|| (bitmap[k] == 0x47 && bitmap[k+1] == 0x63)){
+          LCD_DATA(0xfc); // 0x2365 512D
+          LCD_DATA(0x21);
+        }
+        else if ((bitmap[k] == 0x56 && bitmap[k+1] == 0xca)){
+          LCD_DATA(0x98); // 0x2365 512D
+          LCD_DATA(0xe3);
+        }
+        else if ((bitmap[k] == 0x05 && bitmap[k+1] == 0x29)){
+          LCD_DATA(0x40); // 0x2365 512D
+          LCD_DATA(0x20);
+        }
+        else{
+          LCD_DATA(bitmap[k]);
+          LCD_DATA(bitmap[k + 1]);
+        }
+      }
+      if(level == 0){
+        LCD_DATA(bitmap[k]);
+        LCD_DATA(bitmap[k + 1]);
+      }
       k = k + 2;
     }
   }
@@ -770,8 +950,30 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int
     for (int j = 0; j < height; j++) {
       k = (j * (ancho) + index * width + 1 + offset) * 2;
       for (int i = 0; i < width; i++) {
+        if(level == 15){
+        if(bitmap[k] == 0x7e && bitmap[k+1] == 0x3d){ 
+          LCD_DATA(0x21); // 0x21C8
+          LCD_DATA(0xc8);
+        }
+        else{
+          LCD_DATA(bitmap[k]);
+          LCD_DATA(bitmap[k + 1]);
+        }
+      }
+      if(level == 30){
+        if(bitmap[k] == 0x7e && bitmap[k+1] == 0x3d){ 
+          LCD_DATA(0xcc); // 0xEC21
+          LCD_DATA(0x69);
+        }
+        else{
+          LCD_DATA(bitmap[k]);
+          LCD_DATA(bitmap[k + 1]);
+        }
+      }
+      if(level == 0){
         LCD_DATA(bitmap[k]);
         LCD_DATA(bitmap[k + 1]);
+      }
         k = k + 2;
       }
     }
