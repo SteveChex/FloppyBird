@@ -162,14 +162,23 @@ extern uint8_t j2win[];
 // Inicialización
 //***************************************************************************************************************************************
 void setup() {
-
+  //--------------------------------------------------
+  // Obtención de numero aleatorio usando analogRead
+  //--------------------------------------------------
+  int randVal = analogRead(PE_2);
+  randomControl = map(randVal, 600, 900, 0, 38);
+  if (randomControl < 0){
+    randomControl = 0;
+  } else if (randomControl > 38) {
+    randomControl = 38;
+  }
+  
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
-  Serial.println("Inicio");
+  //Serial.println("Inicio");
   LCD_Init();
-
-  
+  //Serial.println(randomControl);
   // configuración de botones
   pinMode(PB1, INPUT_PULLUP);
   pinMode(PB2, INPUT_PULLUP);
@@ -186,7 +195,7 @@ void setup() {
     PB2State = digitalRead(PB2);
     LCD_Print(indicador, 105, 140+level, 1, 0xFBE4, 0x0000);
     FillRect(105, 125+60, 5, 10, 0x0000);
-    Serial.println(level);
+    //Serial.println(level);
     if(level > 30){
       level = 0;
     }
@@ -199,20 +208,19 @@ void setup() {
       pressed1 = 0;
     }
   }
-
   //--------------------------------------------------
   // Asignación de colores según el mapa seleccionado
   //--------------------------------------------------
   if (level == 0){
-    Serial.println("Mapa 1 seleccionado");
+    //Serial.println("Mapa 1 seleccionado");
     fill_color = 0x7e3d;  // COLOR HEX: 78c6ec
   }
   if (level == 15){
-    Serial.println("Mapa 2 seleccionado");
+    //Serial.println("Mapa 2 seleccionado");
     fill_color = 0x21C8;  // COLOR HEX: 203945
   }
   if (level == 30){
-    Serial.println("Mapa 3 seleccionado");
+    //Serial.println("Mapa 3 seleccionado");
     fill_color = 0xCC69;  // COLOR HEX: ef870c
   }
   //-------------------------------------------------
@@ -303,34 +311,31 @@ void loop() {
   colJ2 = (anclas_aviones[1] + 6 < anclasY_obs[0] || anclas_aviones[1] + 22 > anclasY_obs[1]) &&
           !(posx2 + 50 < x_coord_obs || posx2 + 8 > x_coord_obs)
   ;
-  // -------- --------------------- ----------
-  
+  // -------- --------------------- ----------  
   if (x_coord_obs < 120) {
     reiniciarObstaculos = true;  
     if (colJ1){
       if (!impactoPrevioJ1){
         vidasJ1--;
+        if (vidasJ1 > 5){
+          vidasJ1 = 0;
+        }
         sprintf(str_vidaj1,"%1d", vidasJ1);
         LCD_Print(str_vidaj1, 60, 218, 1, 0xffff, 0xDB25);
         FillRect(65, 218, 10, 15, 0xDB25); 
       }
       impactoPrevioJ1 = true;
-    } else {
-      if (reiniciarObstaculos){
-        impactoPrevioJ1 = false;
-      }
     }
     if (colJ2){
       if (!impactoPrevioJ2){
         vidasJ2--;
+        if (vidasJ1 > 5){
+          vidasJ1 = 0;
+        }
         sprintf(str_vidaj2,"%1d", vidasJ2);
         LCD_Print(str_vidaj2, 105, 218, 1, 0xffff, 0xDB25);
       }
       impactoPrevioJ2 = true;
-    } else {
-      if (reiniciarObstaculos){
-        impactoPrevioJ2 = false;
-      }
     }
   } 
   
@@ -435,45 +440,6 @@ int jump_2(int buttonState, int ylim1, int width, int height, unsigned char bitm
   V_line(posx2 + width + 1, posy2 + 28, 3, fill_color);
   return posy2;
 };
-
-//****************************************
-// Movimiento horizontal de los personajes
-//****************************************
-void x_move(unsigned int rightButtonState, unsigned int leftButtonState, unsigned int xlim1, unsigned int xlim2, unsigned int width, unsigned int height, unsigned char bitmap[]) {
-  if (rightButtonState == 0) {
-    if (x_1 < xlim2) {
-      x_1--;
-      LCD_Bitmap(x_1, y_1, width, height, bitmap);
-      V_line(x_1 - 1, y_1, height, fill_color);
-    }
-  }
-  if (leftButtonState == 0) {
-    if (x_1 >= xlim1) {
-      x_1++;
-      LCD_Bitmap(320 - x_1, y_1, width, height, bitmap);
-      V_line(x_1 + 35, y_1, width, fill_color);
-    }
-  }
-}
-//****************************************
-// Movimiento vertical de los personajes
-//****************************************
-void y_move(unsigned int upButtonState, unsigned int downButtonState, unsigned int ylim1, unsigned int ylim2, unsigned int width, unsigned int height, unsigned char bitmap[]) {
-  if (upButtonState == 0) {
-    if (y_1 < ylim2) {
-      y_1++;
-      LCD_Bitmap(x_1, y_1, width, height, bitmap);
-      H_line(x_1, y_1 - 1, width, fill_color);
-    }
-  }
-  if (downButtonState == 0) {
-    if (y_1 >= ylim1) {
-      y_1--;
-      LCD_Bitmap(x_1, y_1, width, height, planej1);
-      H_line(x_1, y_1 + 25, width, fill_color);
-    }
-  }
-}
 //****************************************
 // Movimiento horizontal de los obstaculos
 //
@@ -488,6 +454,8 @@ void x_move_obs(int *xcoordObs, int *ycoordBitmap1, int *ycoordBitmap2) {
   if (x_1 > 340 ) { // Reinicio de la variable contadora de coordenada x
     x_1 = 0;
     reiniciarObstaculos = false; // Reinicio de variables de control de obstáculos y velocidad
+    impactoPrevioJ1 = false;
+    impactoPrevioJ2 = false;
     randomControl++;
     if (randomControl > maxPRandom){
       randomControl = 0;
@@ -811,7 +779,7 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 
   char charInput ;
   int cLength = text.length();
-  Serial.println(cLength, DEC);
+  //Serial.println(cLength, DEC);
   int charDec ;
   int c ;
   int charHex ;
@@ -819,7 +787,7 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
   text.toCharArray(char_array, cLength + 1) ;
   for (int i = 0; i < cLength ; i++) {
     charInput = char_array[i];
-    Serial.println(char_array[i]);
+    //Serial.println(char_array[i]);
     charDec = int(charInput);
     digitalWrite(LCD_CS, LOW);
     SetWindows(x + (i * fontXSize), y, x + (i * fontXSize) + fontXSize - 1, y + fontYSize );
