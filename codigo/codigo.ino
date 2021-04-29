@@ -39,6 +39,9 @@
 #define PB2 PUSH2
 #define PB3 PE_3
 #define PB4 PE_4
+#define PIN1 PA_2
+#define PIN2 PA_3
+#define PIN3 PA_4
 
 //***************************************************************************************************************************************
 // Definición de variables
@@ -51,6 +54,7 @@ int PB3State = 1;
 int PB4State = 1;
 int x_1 = 20;
 int y_1 = 20;
+int nSong = 0;
 
 // variables de la pantalla de inicio
 // variable de antirebote de botones
@@ -184,12 +188,20 @@ void setup() {
   pinMode(PB2, INPUT_PULLUP);
   pinMode(PB3, INPUT);
   pinMode(PB4, INPUT);
+  
+  pinMode(PIN1, OUTPUT);
+  pinMode(PIN2, OUTPUT);
+  pinMode(PIN3, OUTPUT);
 
   FillRect(0, 0, 320, 240, 0x0000);   // llenado de pantalla de inicio
   init();                             // llamada al texto e imágenes de inicio
   
   LCD_Print(indicador, 105, 140, 1, 0xFBE4, 0x0000);  // indicador de selección
-  
+    digitalWrite(PIN1, HIGH);
+    digitalWrite(PIN1, LOW);
+    digitalWrite(PIN1, HIGH);
+    digitalWrite(PIN1, LOW);
+    
   while(PB1State == 1){
     PB1State = digitalRead(PB1);
     PB2State = digitalRead(PB2);
@@ -265,13 +277,17 @@ void setup() {
   LCD_Bitmap(130, 100, 150, 40, getready);
   delay(1000);
   FillRect(130, 100, 150, 40, fill_color); 
+  digitalWrite(PIN1, HIGH);
+  delay(10);
+  digitalWrite(PIN1, LOW);
+  
   //------------------------------------------------------------
 }
 //***************************************************************************************************************************************
 // Loop Infinito
 //***************************************************************************************************************************************
 void loop() {
-  
+
   PB1State = digitalRead(PB1);
   PB2State = digitalRead(PB2);
 
@@ -346,14 +362,31 @@ void loop() {
       apagarControlJ1 = true;
       apagarControlJ2 = true;
       movSpeed = 0;
+      digitalWrite(PIN1, HIGH);
+      delay(10);
+      digitalWrite(PIN1, LOW);
+      delay(1000);
+      while(true){}
     } else if (vidasJ1 > 0 && vidasJ2 == 0){
       LCD_Print("-J1-", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
       apagarControlJ2 = true;
       movSpeed = 0;
+      digitalWrite(PIN1, HIGH);
+      delay(10);
+      digitalWrite(PIN1, LOW);
+      LCD_Bitmap(130, 100, 120, 40, j1win); 
+      delay(1000);
+      while(true){}
     } else if (vidasJ1 ==  0 && vidasJ2 > 0){
       LCD_Print("-J2-", 60, 0, 1, 0xffff, 0x01EB); // Para depuración
       apagarControlJ1 = true;
       movSpeed = 0;
+      digitalWrite(PIN1, HIGH);
+      delay(10);
+      digitalWrite(PIN1, LOW);
+      LCD_Bitmap(130, 100, 120, 40, j2win); 
+      delay(1000);
+      while(true){}
     }
   }
 } // end Loop()
@@ -470,6 +503,9 @@ void x_move_obs(int *xcoordObs, int *ycoordBitmap1, int *ycoordBitmap2) {
   }
   int tempHeightTree = 210, tempHeightLiana = 0;
   uint8_t valorPrincipal = randValues[randomControl]; 
+  if (valorPrincipal == 0){ 
+    valorPrincipal = 1; 
+  }
   // Imprimir obstaculos
   //LCD_Bitmap(320 - x_1, 210 - height1, width1, height1, bitmap1);
   //LCD_Bitmap(320 - x_1, 0, width2, height2, bitmap2);
