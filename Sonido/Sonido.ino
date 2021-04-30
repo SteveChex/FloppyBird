@@ -38,8 +38,9 @@
 #define MHZ80 80000000
 #define interval 5000
 
-File dir1, dir2;
+//--------------------------- CONTROL DE CANCIONES --------------------------------
 
+File dir1, dir2;
 uint32_t freq = 0;
 bool state = false, sta2 = false, stop = false, oneShoot = false, oneRead = false;
 uint8_t soundCount = 1, durationCount = 0, beat = 0, durationBase = 0, durationBetweenNotes = 0,
@@ -62,7 +63,7 @@ uint8_t newDuration[110] = {};
 
 //-------------------------------- CANCIONES --------------------------------------
 
-//-------------------------Ni idea de como se llama -------------------------------
+//--------------------------- POP GOES THE WEASEL ---------------------------------
 
 uint32_t song1[107] = {1,
                        204081,                                    // 1 Anacruza inicial
@@ -159,7 +160,7 @@ uint8_t lenght2[107] = {64,               // suma de fracciones: 1/duration[n]
                         64
                        };
 
-//--------------------------- CANCION DE GANADOR ----------------------------------
+//--------------------------- FRAGMENTO DE MARIO ----------------------------------
 
 uint32_t song3[107] = {1,
                        80971, 76408, 80971, 76408, 90909, 76408, 80971, 90909,
@@ -200,13 +201,12 @@ void setup() {
   pinMode(SW_1, INPUT_PULLUP);
   pinMode(SW_2, INPUT_PULLUP);
   pinMode(Buz, OUTPUT);
-  pinMode(PE_2, INPUT_PULLUP);
-  pinMode(PA_6, INPUT_PULLUP);
-  pinMode(PA_7, INPUT_PULLUP);
-
-  loadSong(1);
+  pinMode(PE_2, INPUT_PULLUP); // Pines para control de música.
+  
+  loadSong(1);     // Se carga la canción 1 en la memoria.
   oneShoot = true; // La primera cancion solo sonará una vez: La intro
 
+  // Iniciando memoria SD
   SPI.setModule(0); // Se elige el puerto SPI numero 0 de la Tiva
 
   pinMode(CS, OUTPUT); // Pin para Chip Select del maestro
@@ -232,9 +232,9 @@ void loop() {
     oneRead = false;
   }
 
-  if (millis() > lastTime + interval) {
+  if (millis() > lastTime + interval) { // Funcion usada para depurar
     if (lastTime <= 0) {
-      // readSongSD(1);
+      //readSongSD(1);
       //loadSong(2);
     }
 
@@ -242,6 +242,7 @@ void loop() {
     lastTime = millis();
   }
 
+  //DESACTIVAR CANCION SONANDO
   //if (digitalRead(SW_1) == 0) {
   if (song1 == 1) {
     ROM_TimerDisable(TIMER2_BASE, TIMER_A); // Desactivar Timer 2A
@@ -258,6 +259,7 @@ void loop() {
     stop = true;
   }
 
+  // ACTIVAR CANCION SONANDO
   if (song1 == 0) {
     if (stop) {
       switch (changeSong) {
@@ -295,7 +297,7 @@ void loop() {
 void Timer1AHandler(void) {
   //Required to launch next interrupt
 
-  digitalWrite(Buz, state);
+  digitalWrite(Buz, state); // CAMBIAR EL ESTADO DEL BUZZER
   if (state) {
     state = false;
   } else {
@@ -309,17 +311,16 @@ void Timer2AHandler(void) {
   //Required to launch next interrupt
   ROM_TimerIntClear(TIMER2_BASE, TIMER_A);
 
-  beat++;
+  beat++; // CONTADOR PRINCIPAL DE RITMO
 
   //durationBase = 128 / duration[soundCount];
   //durationBetweenNotes = durationBase * 2   / 10;
 
   if (beat >= (128 / duration[soundCount]) - durationBetweenNotes) {
-    freq = 0;
-    //ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, freq); // El último argumento es el CustomValue
+    freq = 0; // Generador de silencios
   }
 
-  if (beat >= durationBase) {
+  if (beat >= durationBase) { // Control de duracion de notas
     beat = 0;
     soundCount++;
     if (soundCount > songLastIndex) {
@@ -379,22 +380,22 @@ void configureTimer1A(void) {
   ROM_IntEnable(INT_TIMER2A);  // Enable Timer 2A Interrupt
 }
 
-uint8_t songLength(uint32_t listOfTones[]) {
+uint8_t songLength(uint32_t listOfTones[]) { // Detectar el final de la canción cargada a la memoria.
   uint8_t lastIndex = 0, index = 0;
   while (lastIndex == 0) {
     index++;
-    if (listOfTones[index] == 1) {
+    if (listOfTones[index] == 1) { // Cuando encuentre el primer 1, habrá encontrado el final
       lastIndex = index;
     }
   }
   return lastIndex;
 }
 
-void loadSong(int songNum) {
+void loadSong(int songNum) { // Cargar cancion a la memoria
   ROM_TimerDisable(TIMER1_BASE, TIMER_A);
   ROM_TimerDisable(TIMER2_BASE, TIMER_A);
   switch (songNum) {
-    case 1:
+    case 1: // La canción 1 ya está en memoria, solo se carga al array correcto.
       songLastIndex = songLength(song1);
       for (int i = 0; i < songLastIndex; i++) {
         notes[i] = song1[i];
@@ -412,11 +413,11 @@ void loadSong(int songNum) {
       durationBetweenNotes = durationBase * 2   / 10;
       break;
     case 2:
-      readSongSD(1);
+      readSongSD(1); // Se lee desde la SD.
       songLastIndex = songLength(newSong);
       for (int i = 0; i < songLastIndex; i++) {
-        notes[i] = newSong[i];
-        duration[i] = newDuration[i];
+        notes[i] = newSong[i]; // Carga cada nota al array de notas y
+        duration[i] = newDuration[i]; // cada duracion al array de duraciones
       }
       if (songLastIndex < 110) {
         for (int i = songLastIndex; i < 110; i++) {
@@ -429,7 +430,7 @@ void loadSong(int songNum) {
       durationBase = 128 / duration[soundCount];
       durationBetweenNotes = durationBase * 2   / 10;
       break;
-    case 3:
+    case 3: 
       readSongSD(2);
       songLastIndex = songLength(newSong);
       for (int i = 0; i < songLastIndex; i++) {
@@ -454,7 +455,7 @@ void loadSong(int songNum) {
       duration[0] = 1;
       duration[1] = 1;
       duration[2] = 1;
-      if (songLastIndex < 110) {
+      if (songLastIndex < 110) { // Rellena los espacios sobrantes con frecuencias inaudibles.
         for (int i = songLastIndex; i < 110; i++) {
           notes[i] = 1;
           duration[i] = 64;
@@ -462,6 +463,7 @@ void loadSong(int songNum) {
       }
       break;
   }
+  // Reinicia variables de control y carga los datos a los timers.
   beat = 0;
   soundCount = 1;
 
@@ -471,9 +473,12 @@ void loadSong(int songNum) {
   ROM_TimerEnable(TIMER1_BASE, TIMER_A);
 }
 
-void readSongSD(uint8_t index) {
+void readSongSD(uint8_t index) { // Lee datos desde la SD
   contKeeper = 0;
   contKeeper2 = 0;
+  
+  // Nombres de los archivos esperados en la SD.
+  
   char name1[] = "/S2N.txt";
   char name2[] = "/S2S.txt";
   char name3[] = "/S3N.txt";
@@ -493,9 +498,9 @@ void readSongSD(uint8_t index) {
     while (dir1.available()) {
       temp = dir1.read();
 
-      if (temp == 44) {
+      if (temp == 44) { // Cada vez que recibe una coma, transforma los numeros anteriores recibidos en un entero
         uint32_t multiplicador = 10000000;
-        if (contTransformer < 8) {
+        if (contTransformer < 8) { // usado para la suma más adelante. Coloca la unidad "en su lugar" en base 10
           for (int i = contTransformer; i < 8; i++) {
             transformer[i] = 0;
             multiplicador /= 10;
@@ -505,11 +510,11 @@ void readSongSD(uint8_t index) {
         valor = 0;
 
         for (int i = 0; i < contTransformer; i++) {
-          valor += multiplicador * transformer[i];
+          valor += multiplicador * transformer[i]; // Colocando cada número en donde corresponde en base 10.
           multiplicador /= 10;
         }
 
-        newSong[contKeeper] = valor;
+        newSong[contKeeper] = valor; // Guardar valor en array de notas
 
         contTransformer = 0;
         contKeeper++;
@@ -586,7 +591,7 @@ void readSongSD(uint8_t index) {
   }
 }
 
-uint8_t translate(uint32_t data) {
+uint8_t translate(uint32_t data) { // Traduce los datos ascii recibidos a numeros.
   uint8_t contenedor = 0;
   switch (data) {
     case 48:
