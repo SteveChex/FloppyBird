@@ -105,7 +105,7 @@ int randValues[] = {0, 3, 1, 6, 5, 2, 3, 4, 1, 2,
                     0, 3, 0, 3, 1, 2, 2, 4, 5, 6};
 int maxPRandom = 39;
 int randomControl = 0;
-int obstaculosPorVelocidad[] = {3, 3, 3, 4, 4, 4, 4, 5, 7, 9,
+int obstaculosPorVelocidad[] = {2, 2, 2, 3, 3, 3, 4, 4, 5, 6,
                     10, 10, 10, 10, 10, 10, 10, 10, 10, 10};
 int obsControl = 0;
 bool changeValue = false;
@@ -123,7 +123,7 @@ int movSpeed = 1;
 int h_tree = 81, h_liana = 78;
 
 // Variables del sistema de vidas
-uint8_t vidasJ1 = 3, vidasJ2 = 3;
+uint8_t vidasJ1 = 5, vidasJ2 = 5;
 bool impactoPrevioJ1 = false, impactoPrevioJ2 = false;
 bool reiniciarObstaculos = false;
 
@@ -321,11 +321,11 @@ void loop() {
   // las variables serán de valor "true". En caso contrario, serán de valor "false". 
   // Estas variables controlan un if más adelante. Por lo que será alli donde se programará cualquier funcionalidad necesaria. 
   // Los numeros que se suman a las coordenadas son parametros de ajuste, para hacer que la colision no sea demasiado precisa
-  colJ1 = (anclas_aviones[0] + 6 < anclasY_obs[0] || anclas_aviones[0] + 22 > anclasY_obs[1]) && 
-          !(posx1 + 50 < x_coord_obs || posx1 + 8 > x_coord_obs)
+  colJ1 = (anclas_aviones[0] + 8 < anclasY_obs[0] || anclas_aviones[0] + 20 > anclasY_obs[1]) && 
+          !(posx1 + 50 < x_coord_obs || posx1 + 10 > x_coord_obs)
   ;
-  colJ2 = (anclas_aviones[1] + 6 < anclasY_obs[0] || anclas_aviones[1] + 22 > anclasY_obs[1]) &&
-          !(posx2 + 50 < x_coord_obs || posx2 + 8 > x_coord_obs)
+  colJ2 = (anclas_aviones[1] + 8 < anclasY_obs[0] || anclas_aviones[1] + 20 > anclasY_obs[1]) &&
+          !(posx2 + 50 < x_coord_obs || posx2 + 10 > x_coord_obs)
   ;
   // -------- --------------------- ----------  
   if (x_coord_obs < 120) {
